@@ -6,7 +6,12 @@ import { z } from "zod";
 import { writeJsonAtomically } from "./artifacts.js";
 import { SpecRelayError } from "./errors.js";
 import type { RunPaths } from "./paths.js";
-import { executionRecordSchema, type ExecutionRecord } from "./run.js";
+import {
+  executionRecordSchema,
+  executorSummarySchema,
+  type ExecutionRecord,
+  type ExecutorSummary
+} from "./run.js";
 
 export const DEFAULT_MAX_TURNS = 10;
 export const MAX_MAX_TURNS = 10;
@@ -233,6 +238,34 @@ export async function writeExecutionRecord(
     );
   }
   await writeJsonAtomically(runPaths.executionPath, validation.data);
+}
+
+export async function readExecutorSummary(runPaths: RunPaths): Promise<ExecutorSummary> {
+  let content: string;
+  try {
+    content = await fs.readFile(runPaths.executorSummaryPath, "utf8");
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+      throw new SpecRelayError(
+        "INVALID_EXECUTION",
+        "Executor summary artifact does not exist for this run."
+      );
+    }
+    throw error;
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(content);
+  } catch {
+    throw new SpecRelayError("INVALID_EXECUTION", "Executor summary artifact is not valid JSON.");
+  }
+  const parsed = executorSummarySchema.safeParse(data);
+  if (!parsed.success) {
+    throw new SpecRelayError("INVALID_EXECUTION", "Executor summary artifact is invalid.", {
+      issues: parsed.error.issues
+    });
+  }
+  return parsed.data;
 }
 
 export function isExecutionTerminal(state: ExecutionRecord["state"]): boolean {

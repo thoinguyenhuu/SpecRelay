@@ -22,6 +22,7 @@ import { parsePlanDocument } from "../core/plan.js";
 import { transition } from "../core/state.js";
 import { isPathInside } from "../core/worktree.js";
 import { requireGitRepository } from "./git.js";
+import { writeFinalReportArtifact } from "./review.js";
 
 export interface RunChecksOptions {
   readonly repositoryPath: string;
@@ -112,6 +113,9 @@ export async function runApprovedChecks(options: RunChecksOptions): Promise<RunC
       type: outcome === "passed" ? "checks_passed" : "checks_failed",
       details: { state: next.state, completed: results.length, configured: checks.length }
     });
+    if (outcome === "failed") {
+      await writeFinalReportArtifact(runPaths, next);
+    }
     return { command: "check", runId: options.runId, state, checks: checksRecord };
   });
 }

@@ -11,13 +11,13 @@ import { runExecutorWorker } from "./executor-worker.js";
 import {
   cleanupExecution,
   formatExecutionPreview,
-  getExecutionReport,
   getExecutionStatus,
   implementApprovedRun,
   requestExecutionCancellation
 } from "./implementation.js";
 import { initializeRepository } from "./init.js";
 import { createPlanRun, showPlanRun, type PlanSummary } from "./plan.js";
+import { createReviewPacket, getFinalReport, getRunDiff, recordReview } from "./review.js";
 
 interface CommandOptions {
   readonly repo?: string;
@@ -32,6 +32,8 @@ interface CommandOptions {
   readonly timeout?: string;
   readonly follow?: boolean;
   readonly claudeBin?: string;
+  readonly stat?: boolean;
+  readonly input?: string;
 }
 
 function writeResult(value: unknown, json: boolean): void {
@@ -118,9 +120,18 @@ function writeResult(value: unknown, json: boolean): void {
       return;
     }
     if (result.command === "report") {
-      const execution = result.execution as { state: string; worktreePath: string };
-      process.stdout.write(`Execution ${result.runId}: ${execution.state}\n`);
-      process.stdout.write(`Worktree: ${execution.worktreePath}\n`);
+      const report = result.report as {
+        state: string;
+        branchName: string;
+        worktreePath: string;
+        review?: { decision: string };
+      };
+      process.stdout.write(`Run ${result.runId}: ${report.state}\n`);
+      process.stdout.write(`Branch: ${report.branchName}\n`);
+      process.stdout.write(`Worktree: ${report.worktreePath}\n`);
+      if (report.review !== undefined) {
+        process.stdout.write(`Review: ${report.review.decision}\n`);
+      }
       return;
     }
     if (result.command === "check") {
@@ -132,6 +143,25 @@ function writeResult(value: unknown, json: boolean): void {
       for (const check of checks.results) {
         process.stdout.write(`- ${check.id}: ${check.outcome}\n`);
       }
+      return;
+    }
+    if (result.command === "diff") {
+      process.stdout.write(String(result.content));
+      return;
+    }
+    if (result.command === "review-packet") {
+      const packet = result.packet as {
+        diff: { sha256: string; bytes: number };
+        checks: { outcome: string };
+      };
+      process.stdout.write(`Review packet for ${result.runId}: checks=${packet.checks.outcome}\n`);
+      process.stdout.write(`Diff: ${packet.diff.bytes} bytes, ${packet.diff.sha256}\n`);
+      return;
+    }
+    if (result.command === "record-review") {
+      const review = result.review as { decision: string; findings: readonly unknown[] };
+      process.stdout.write(`Review for ${result.runId}: ${review.decision}\n`);
+      process.stdout.write(`Findings: ${review.findings.length}\n`);
       return;
     }
   }
@@ -348,6 +378,68 @@ program
   });
 
 program
+  .command("diff <run-id> [pathspec...]")
+  .description("Read the isolated worktree diff from the execution base commit.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--stat", "Show Git diff statistics instead of the full diff")
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, pathspec: string[] | undefined, options: CommandOptions) => {
+    try {
+      writeResult(
+        await getRunDiff({
+          repositoryPath: options.repo ?? process.cwd(),
+          runId,
+          stat: options.stat ?? false,
+          pathspec: pathspec ?? []
+        }),
+        options.json ?? false
+      );
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("review-packet <run-id>")
+  .description("Create the structured evidence packet for a Codex chat review.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      writeResult(
+        await createReviewPacket(options.repo ?? process.cwd(), runId),
+        options.json ?? false
+      );
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("record-review <run-id>")
+  .description("Validate and persist the structured Codex review decision.")
+  .requiredOption("--input <review.json>", "Path to the structured review JSON input")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      writeResult(
+        await recordReview({
+          repositoryPath: options.repo ?? process.cwd(),
+          runId,
+          inputPath: options.input ?? ""
+        }),
+        options.json ?? false
+      );
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("cancel <run-id>")
   .description("Request cancellation from an active executor worker.")
   .option("--yes", "Confirm cancellation")
@@ -389,13 +481,13 @@ program
 
 program
   .command("report <run-id>")
-  .description("Show the local executor summary without running checks or review.")
+  .description("Show and refresh the structured execution, checks, and review report.")
   .option("--repo <path>", "Repository containing the run", process.cwd())
   .option("--json", "Print machine-readable JSON")
   .action(async (runId: string, options: CommandOptions) => {
     try {
       writeResult(
-        await getExecutionReport(options.repo ?? process.cwd(), runId),
+        await getFinalReport(options.repo ?? process.cwd(), runId),
         options.json ?? false
       );
     } catch (error) {

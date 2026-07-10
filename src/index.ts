@@ -5,6 +5,7 @@ export * from "./core/errors.js";
 export * from "./core/execution.js";
 export * from "./core/paths.js";
 export * from "./core/plan.js";
+export * from "./core/review.js";
 export * from "./core/run.js";
 export * from "./core/state.js";
 export * from "./core/worktree.js";
