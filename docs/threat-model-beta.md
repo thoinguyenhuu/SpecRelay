@@ -2,7 +2,7 @@
 
 ## Release gate
 
-`v0.1.0-beta.2` may be released only after the designated maintainer reads this
+`v0.1.0-beta.3` may be released only after the designated maintainer reads this
 document, records findings in the GitHub Environment approval, and approves
 the `beta-release` environment. The release workflow is manual and must not
 publish to npm.
@@ -20,7 +20,7 @@ publish to npm.
 
 ## Reviewer checklist
 
-- [ ] Confirm the release tag, package version, manifest version, and marketplace ref are all `v0.1.0-beta.2` / `0.1.0-beta.2`.
+- [ ] Confirm the release tag, package version, manifest version, and marketplace ref are all `v0.1.0-beta.3` / `0.1.0-beta.3`.
 - [ ] Confirm CI and package smoke tests passed for the tagged commit.
 - [ ] Inspect the tarball file list and checksum.
 - [ ] Confirm the CLI remains `private: true` and the workflow has no npm publish step.

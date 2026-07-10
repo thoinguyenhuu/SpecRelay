@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0-beta.3]
+
+### Fixed
+
+- Pass the Claude Code prompt before variadic permission rules so print mode
+  receives the approved executor contract.
+
 ## [0.1.0-beta.2]
 
 ### Fixed
