@@ -1,0 +1,18 @@
+{
+  "name": "plugin-4-codex-control-cc",
+  "version": "0.1.0",
+  "description": "Plan approval and review workflow for Codex and Claude Code.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "SpecRelay",
+    "shortDescription": "Plan approval and review workflow for Codex and Claude Code.",
+    "longDescription": "SpecRelay is a local-first workflow for human-approved plans, controlled Claude Code implementation, and independent Codex review.",
+    "developerName": "SpecRelay contributors",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Hãy tạo plan cho yêu cầu của tôi, chờ tôi duyệt trước khi giao Claude Code triển khai và review kết quả."
+  }
+}

@@ -1,0 +1,27 @@
+name: Bug report
+description: Report reproducible SpecRelay behavior.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not report security vulnerabilities here; use SECURITY.md."
+  - type: input
+    id: version
+    attributes:
+      label: SpecRelay version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include commands, operating system, and sanitized output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

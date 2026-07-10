@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.vitest/
+.specrelay/
+*.tgz
+.env
+.env.*
+!.env.example
