@@ -8,3 +8,24 @@ export async function createTemporaryGitRepository(): Promise<string> {
   execFileSync("git", ["init", "--quiet"], { cwd: repositoryPath });
   return repositoryPath;
 }
+
+export async function createCommittedTemporaryGitRepository(): Promise<string> {
+  const repositoryPath = await createTemporaryGitRepository();
+  await fs.writeFile(path.join(repositoryPath, "README.md"), "# Fixture\n", "utf8");
+  execFileSync("git", ["add", "README.md"], { cwd: repositoryPath });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=SpecRelay test",
+      "-c",
+      "user.email=test@example.invalid",
+      "commit",
+      "--quiet",
+      "-m",
+      "Initial fixture"
+    ],
+    { cwd: repositoryPath }
+  );
+  return repositoryPath;
+}

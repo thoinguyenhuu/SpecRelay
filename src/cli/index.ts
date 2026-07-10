@@ -2,9 +2,19 @@
 
 import { Command } from "commander";
 
+import { isExecutionTerminal } from "../core/execution.js";
 import { isSpecRelayError } from "../core/errors.js";
 import { runDoctor } from "./doctor.js";
 import { approvePlanRun } from "./approval.js";
+import { runExecutorWorker } from "./executor-worker.js";
+import {
+  cleanupExecution,
+  formatExecutionPreview,
+  getExecutionReport,
+  getExecutionStatus,
+  implementApprovedRun,
+  requestExecutionCancellation
+} from "./implementation.js";
 import { initializeRepository } from "./init.js";
 import { createPlanRun, showPlanRun, type PlanSummary } from "./plan.js";
 
@@ -17,6 +27,10 @@ interface CommandOptions {
   readonly approvedBy?: string;
   readonly acceptOpenQuestions?: boolean;
   readonly reason?: string;
+  readonly maxTurns?: string;
+  readonly timeout?: string;
+  readonly follow?: boolean;
+  readonly claudeBin?: string;
 }
 
 function writeResult(value: unknown, json: boolean): void {
@@ -66,6 +80,42 @@ function writeResult(value: unknown, json: boolean): void {
     }
     writePlanSummary(value as PlanSummary);
     return;
+  }
+
+  if (typeof value === "object" && value !== null && "command" in value && "runId" in value) {
+    const result = value as Record<string, unknown>;
+    if (result.command === "implement") {
+      const preview = formatExecutionPreview(value as Parameters<typeof formatExecutionPreview>[0]);
+      process.stdout.write(
+        `${result.dryRun === true ? "Would prepare" : "Started"} execution for ${result.runId}.\n`
+      );
+      process.stdout.write(`${preview}\n`);
+      return;
+    }
+    if (result.command === "status") {
+      const execution = result.execution as { state: string; heartbeatAt: string };
+      process.stdout.write(
+        `Run ${result.runId}: ${String(result.runState)} / ${execution.state}\n`
+      );
+      process.stdout.write(`Heartbeat: ${execution.heartbeatAt}\n`);
+      return;
+    }
+    if (result.command === "cancel") {
+      process.stdout.write(`Cancellation state for ${result.runId}: ${String(result.state)}\n`);
+      return;
+    }
+    if (result.command === "cleanup") {
+      process.stdout.write(
+        `Cleanup for ${result.runId}: worktree=${String(result.worktreeRemoved)}, branch=${String(result.branchDeleted)}\n`
+      );
+      return;
+    }
+    if (result.command === "report") {
+      const execution = result.execution as { state: string; worktreePath: string };
+      process.stdout.write(`Execution ${result.runId}: ${execution.state}\n`);
+      process.stdout.write(`Worktree: ${execution.worktreePath}\n`);
+      return;
+    }
   }
 
   const result = value as {
@@ -211,6 +261,128 @@ program
       writeResult(result, options.json ?? false);
     } catch (error) {
       writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("implement <run-id>")
+  .description("Create an isolated worktree and start a controlled Claude Code executor.")
+  .option("--yes", "Confirm isolated execution and Claude usage")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--max-turns <count>", "Maximum Claude agentic turns (1-10)")
+  .option("--timeout <duration>", "Executor timeout from 1s to 20m")
+  .option("--dry-run", "Print the exact execution preview without writing or spawning")
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      const result = await implementApprovedRun({
+        repositoryPath: options.repo ?? process.cwd(),
+        runId,
+        confirmed: options.yes ?? false,
+        dryRun: options.dryRun ?? false,
+        ...(options.maxTurns === undefined ? {} : { maxTurns: options.maxTurns }),
+        ...(options.timeout === undefined ? {} : { timeout: options.timeout })
+      });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("status <run-id>")
+  .description("Show executor state and heartbeat for a run.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--follow", "Refresh once per second until the execution reaches a terminal state")
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      let result = await getExecutionStatus(options.repo ?? process.cwd(), runId);
+      writeResult(result, options.json ?? false);
+      while (options.follow === true && !isExecutionTerminal(result.execution.state)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+        result = await getExecutionStatus(options.repo ?? process.cwd(), runId);
+        writeResult(result, options.json ?? false);
+      }
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("cancel <run-id>")
+  .description("Request cancellation from an active executor worker.")
+  .option("--yes", "Confirm cancellation")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      const result = await requestExecutionCancellation({
+        repositoryPath: options.repo ?? process.cwd(),
+        runId,
+        confirmed: options.yes ?? false
+      });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("cleanup <run-id>")
+  .description("Remove a clean, terminal isolated worktree while retaining audit artifacts.")
+  .option("--yes", "Confirm worktree cleanup")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      const result = await cleanupExecution({
+        repositoryPath: options.repo ?? process.cwd(),
+        runId,
+        confirmed: options.yes ?? false
+      });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("report <run-id>")
+  .description("Show the local executor summary without running checks or review.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      writeResult(
+        await getExecutionReport(options.repo ?? process.cwd(), runId),
+        options.json ?? false
+      );
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("__execute-worker <run-id>")
+  .description("Internal executor worker entry point.")
+  .requiredOption("--repo <path>")
+  .requiredOption("--claude-bin <path>")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      await runExecutorWorker({
+        repositoryRoot: options.repo ?? process.cwd(),
+        runId,
+        claudeBinary: options.claudeBin ?? "claude"
+      });
+    } catch (error) {
+      writeError(error, false);
       process.exitCode = 1;
     }
   });

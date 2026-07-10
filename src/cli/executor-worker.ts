@@ -14,6 +14,7 @@ import {
   isExecutionTerminal,
   readExecutionRecord,
   redactExecutorText,
+  sha256,
   type ExecutionPolicy,
   writeExecutionRecord,
   MAX_EXECUTOR_OUTPUT_BYTES
@@ -27,6 +28,7 @@ export interface ExecutorWorkerOptions {
   readonly repositoryRoot: string;
   readonly runId: string;
   readonly claudeBinary: string;
+  readonly claudeArgumentsPrefix?: readonly string[];
 }
 
 interface StreamResult {
@@ -159,6 +161,12 @@ export async function runExecutorWorker(options: ExecutorWorkerOptions): Promise
   if (isExecutionTerminal(initialExecution.state)) {
     return;
   }
+  if (policy.promptSha256 !== sha256(prompt)) {
+    throw new SpecRelayError(
+      "INVALID_EXECUTION",
+      "Executor prompt does not match its policy digest."
+    );
+  }
 
   let execution = await updateExecution(runPaths, (current) => ({
     ...current,
@@ -173,13 +181,19 @@ export async function runExecutorWorker(options: ExecutorWorkerOptions): Promise
   let streamResult: StreamResult = { valid: false, success: false };
   let buffer = "";
   let queue = Promise.resolve();
+  let heartbeatQueue = Promise.resolve();
+  let stopping = false;
 
-  const child = spawn(options.claudeBinary, buildClaudeArguments(policy, prompt), {
-    cwd: execution.worktreePath,
-    env: buildClaudeEnvironment(),
-    shell: false,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
+  const child = spawn(
+    options.claudeBinary,
+    [...(options.claudeArgumentsPrefix ?? []), ...buildClaudeArguments(policy, prompt)],
+    {
+      cwd: execution.worktreePath,
+      env: buildClaudeEnvironment(),
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"]
+    }
+  );
   execution = await updateExecution(runPaths, (current) => ({
     ...current,
     claudePid: child.pid,
@@ -187,17 +201,20 @@ export async function runExecutorWorker(options: ExecutorWorkerOptions): Promise
   }));
 
   const inspectCancellation = async (): Promise<void> => {
+    if (stopping) {
+      return;
+    }
     const current = await readExecutionRecord(runPaths);
     if (current.cancellationRequestedAt !== undefined && !cancellationRequested) {
       cancellationRequested = true;
       child.kill("SIGTERM");
     }
-    if (!isExecutionTerminal(current.state)) {
+    if (!stopping && !isExecutionTerminal(current.state)) {
       await updateExecution(runPaths, (latest) => ({ ...latest, heartbeatAt: now() }));
     }
   };
   const heartbeat = setInterval(() => {
-    void inspectCancellation();
+    heartbeatQueue = heartbeatQueue.then(inspectCancellation).catch(() => undefined);
   }, 1000);
   const timeout = setTimeout(() => {
     timedOut = true;
@@ -250,8 +267,10 @@ export async function runExecutorWorker(options: ExecutorWorkerOptions): Promise
     child.once("error", () => resolve(null));
     child.once("close", (code) => resolve(code));
   });
+  stopping = true;
   clearInterval(heartbeat);
   clearTimeout(timeout);
+  await heartbeatQueue;
   if (buffer.length > 0) {
     await consumeLine(buffer);
   }

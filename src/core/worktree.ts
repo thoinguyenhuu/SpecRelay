@@ -33,7 +33,7 @@ function tryGit(repositoryRoot: string, args: readonly string[]): string | undef
   }
 }
 
-function isPathInside(root: string, candidate: string): boolean {
+export function isPathInside(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return (
     relative === "" ||
@@ -87,6 +87,23 @@ export async function getOwnedWorktreePath(
     });
   }
   return { root: realRoot, worktreePath };
+}
+
+export function previewOwnedWorktreePath(runId: string, root = getManagedWorktreeRoot()): string {
+  if (!/^run-[a-z0-9-]+$/u.test(runId)) {
+    throw new SpecRelayError("UNSAFE_WORKTREE_PATH", "Run ID is not safe for a worktree path.", {
+      runId
+    });
+  }
+  const resolvedRoot = path.resolve(root);
+  const worktreePath = path.resolve(resolvedRoot, runId);
+  if (!isPathInside(resolvedRoot, worktreePath) || worktreePath === resolvedRoot) {
+    throw new SpecRelayError("UNSAFE_WORKTREE_PATH", "Worktree path escapes the managed root.", {
+      root: resolvedRoot,
+      worktreePath
+    });
+  }
+  return worktreePath;
 }
 
 export function assertCleanBaseRepository(repositoryRoot: string): void {

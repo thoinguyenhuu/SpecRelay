@@ -49,6 +49,7 @@ export const executionRecordSchema = z
     state: z.enum(executionStates),
     baseCommit: z.string().min(1),
     branchName: z.string().min(1),
+    managedRoot: z.string().min(1),
     worktreePath: z.string().min(1),
     workerPid: z.number().int().positive().optional(),
     claudePid: z.number().int().positive().optional(),

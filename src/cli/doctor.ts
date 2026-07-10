@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { findGitRepository, gitVersion } from "./git.js";
+import { supportsGitWorktree } from "../core/worktree.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -106,6 +107,57 @@ function repositoryCheck(targetPath: string): DoctorCheck {
       };
 }
 
+function gitWorktreeCheck(targetPath: string): DoctorCheck {
+  const repositoryRoot = findGitRepository(targetPath);
+  if (repositoryRoot === undefined) {
+    return {
+      id: "git-worktree",
+      status: "warn",
+      message: "Git worktree capability cannot be checked outside a Git repository."
+    };
+  }
+  const supported = supportsGitWorktree(repositoryRoot);
+  return {
+    id: "git-worktree",
+    status: supported ? "pass" : "fail",
+    message: supported ? "Git worktree is available." : "Git worktree is unavailable."
+  };
+}
+
+function claudePrintModeCheck(): DoctorCheck {
+  try {
+    const help = execFileSync("claude", ["--help"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    const supported = help.includes("--output-format") && help.includes("--max-turns");
+    return {
+      id: "claude-print-mode",
+      status: supported ? "pass" : "warn",
+      message: supported
+        ? "Claude print-mode flags are available."
+        : "Claude was found but required print-mode flags were not detected."
+    };
+  } catch {
+    return {
+      id: "claude-print-mode",
+      status: "warn",
+      message: "Claude print-mode is unavailable because claude was not found on PATH."
+    };
+  }
+}
+
+function windowsClaudeCheck(): DoctorCheck | undefined {
+  if (process.platform !== "win32") {
+    return undefined;
+  }
+  return {
+    id: "windows-claude",
+    status: "warn",
+    message: "Verify Claude Code works in WSL or Git Bash before starting an executor run."
+  };
+}
+
 export function runDoctor(repositoryPath: string): DoctorReport {
   const targetPath = path.resolve(repositoryPath);
   const installedGitVersion = gitVersion();
@@ -121,9 +173,16 @@ export function runDoctor(repositoryPath: string): DoctorReport {
           : `git is available (${installedGitVersion}).`
     },
     repositoryCheck(targetPath),
+    gitWorktreeCheck(targetPath),
     dependencyCheck("codex", false),
-    dependencyCheck("claude", false)
+    dependencyCheck("claude", false),
+    claudePrintModeCheck()
   ];
+
+  const windowsCheck = windowsClaudeCheck();
+  if (windowsCheck !== undefined) {
+    checks.push(windowsCheck);
+  }
 
   if (!fs.existsSync(targetPath)) {
     checks.push({

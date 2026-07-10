@@ -167,6 +167,7 @@ export function createExecutionRecord(options: {
   readonly runId: string;
   readonly baseCommit: string;
   readonly branchName: string;
+  readonly managedRoot: string;
   readonly worktreePath: string;
   readonly timeoutMs: number;
   readonly now?: Date;
@@ -179,6 +180,7 @@ export function createExecutionRecord(options: {
     state: "prepared",
     baseCommit: options.baseCommit,
     branchName: options.branchName,
+    managedRoot: options.managedRoot,
     worktreePath: options.worktreePath,
     startedAt: now.toISOString(),
     heartbeatAt: now.toISOString(),
