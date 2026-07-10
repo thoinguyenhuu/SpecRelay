@@ -52,6 +52,7 @@
     "validate:marketplace": "tsx scripts/validate-marketplace.ts",
     "validate": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run validate:plugin && npm run validate:marketplace",
     "package:beta": "npm run validate && tsx scripts/package-beta.ts",
+    "test:package": "npm run build && tsx scripts/smoke-beta-package.ts",
     "ci": "npm run validate"
   },
   "dependencies": {

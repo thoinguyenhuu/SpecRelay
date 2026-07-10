@@ -1,0 +1,40 @@
+name: Beta prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing beta tag to release, for example v0.1.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build and publish beta prerelease
+    runs-on: ubuntu-latest
+    environment: beta-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run validate
+      - run: npm run test:package
+      - run: npx tsx scripts/verify-beta-release.ts
+        env:
+          SPECRELAY_RELEASE_TAG: ${{ inputs.tag }}
+      - run: npm run package:beta
+      - run: sha256sum release/*.tgz > release/SHA256SUMS.txt
+      - run: gh release create "${{ inputs.tag }}" release/*.tgz release/SHA256SUMS.txt --prerelease --title "${{ inputs.tag }}" --target "${{ inputs.tag }}"
+        env:
+          GH_TOKEN: ${{ github.token }}

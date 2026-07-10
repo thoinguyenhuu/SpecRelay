@@ -2,6 +2,8 @@
 
 import { Command } from "commander";
 
+import packageMetadata from "../../package.json" with { type: "json" };
+
 import { isExecutionTerminal } from "../core/execution.js";
 import { isSpecRelayError } from "../core/errors.js";
 import { approvePlanRun } from "./approval.js";
@@ -215,7 +217,7 @@ const program = new Command();
 program
   .name("specrelay")
   .description("Plan approval and review workflow for Codex and Claude Code.")
-  .version("0.1.0");
+  .version(packageMetadata.version);
 
 program
   .command("doctor")

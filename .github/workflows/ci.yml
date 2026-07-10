@@ -30,3 +30,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run validate:plugin
+      - run: npm run validate:marketplace
+      - run: npm run test:package
