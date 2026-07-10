@@ -17,7 +17,9 @@ disclosure timeline with the reporter.
 
 ## Security principles
 
-- No telemetry or remote reporting in Phase A.
-- No credential storage or agent execution in Phase A.
-- Future agent execution must use explicit policy, isolated workspaces, and
-  human approval gates; it must never rely on prompt text as authorization.
+- No telemetry or remote reporting.
+- No credential storage; bounded logs redact common credential patterns.
+- Agent execution uses explicit policy, isolated workspaces, and human approval
+  gates; it never relies on prompt text as authorization.
+- Beta releases require an independent threat-model review before the
+  `beta-release` environment is approved.

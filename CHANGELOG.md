@@ -18,3 +18,6 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - Phase D approved check definitions, sequential no-shell worktree checks,
   bounded redacted `checks.json`, Git diff/read-only review packets, structured
   `review.json` quality gates, and canonical `final-report.json`.
+- Beta distribution metadata, a Git marketplace, beta fixture, acceptance
+  checklist, threat model, and installation/feedback documentation for
+  `v0.1.0-beta.1`.

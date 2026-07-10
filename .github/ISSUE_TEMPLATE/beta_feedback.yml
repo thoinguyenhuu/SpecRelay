@@ -1,0 +1,51 @@
+name: Beta feedback
+description: Report the outcome of a SpecRelay beta installation or fixture run.
+title: "beta: "
+labels: [beta-feedback]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, raw .specrelay artifacts, private diffs, or unredacted logs. Use SECURITY.md for vulnerabilities."
+  - type: input
+    id: release
+    attributes:
+      label: SpecRelay release tag
+      placeholder: v0.1.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows PowerShell
+        - Windows WSL
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Tool versions
+      description: Include Node, npm, Git, Codex, and Claude Code when applicable.
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Installed and completed the fixture
+        - Installed but fixture was blocked
+        - Installation failed
+        - Did not run Claude execution
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Sanitized steps and output
+      description: Include only commands and output safe to publish.
+    validations:
+      required: true

@@ -16,7 +16,7 @@ diff directly in chat; JSON artifacts are for audit and resume, not a document
 UI users are expected to read.
 
 [Đọc bằng tiếng Việt](README.vi.md) · [Architecture](docs/architecture.md) ·
-[Vietnamese project plan](docs/ke-hoach-open-source.md)
+[Beta quickstart](docs/beta-quickstart.md) · [Vietnamese project plan](docs/ke-hoach-open-source.md)
 
 ## Requirements
 

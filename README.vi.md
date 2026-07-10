@@ -16,7 +16,7 @@ chat Codex; JSON/Markdown trong `.specrelay/` là artifact audit/resume, không
 phải giao diện tài liệu bắt buộc phải đọc.
 
 [Read the English README](README.md) · [Architecture](docs/architecture.md) ·
-[Kế hoạch dự án](docs/ke-hoach-open-source.md)
+[Hướng dẫn beta](docs/beta-quickstart.vi.md) · [Kế hoạch dự án](docs/ke-hoach-open-source.md)
 
 ## Yêu cầu
 
