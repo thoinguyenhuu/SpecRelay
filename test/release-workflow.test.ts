@@ -30,5 +30,10 @@ describe("beta release workflow", () => {
     expect(
       workflow.jobs.release.steps.some((step) => step.run?.includes("gh release create") === true)
     ).toBe(true);
+    const releaseStep = workflow.jobs.release.steps.find((step) =>
+      step.run?.includes("gh release create")
+    );
+    expect(releaseStep?.run).toContain("--verify-tag");
+    expect(releaseStep?.run).not.toContain("--target");
   });
 });
