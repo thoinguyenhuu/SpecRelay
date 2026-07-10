@@ -370,7 +370,7 @@ program
   });
 
 program
-  .command("__execute-worker <run-id>")
+  .command("__execute-worker <run-id>", { hidden: true })
   .description("Internal executor worker entry point.")
   .requiredOption("--repo <path>")
   .requiredOption("--claude-bin <path>")
