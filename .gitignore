@@ -4,6 +4,7 @@ coverage/
 .vitest/
 .specrelay/
 *.tgz
+release/
 .env
 .env.*
 !.env.example

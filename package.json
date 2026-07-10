@@ -1,8 +1,24 @@
 {
   "name": "@specrelay/cli",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "private": true,
   "description": "Plan approval and review workflow for Codex and Claude Code.",
+  "homepage": "https://github.com/thoinguyenhuu/SpecRelay#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thoinguyenhuu/SpecRelay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thoinguyenhuu/SpecRelay/issues"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "agentic-workflow",
+    "claude-code",
+    "codex",
+    "code-review",
+    "developer-tools"
+  ],
   "type": "module",
   "bin": {
     "specrelay": "./dist/cli/index.js"
@@ -34,6 +50,7 @@
     "typecheck": "tsc --noEmit",
     "validate:plugin": "tsx scripts/validate-plugin.ts",
     "validate": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run validate:plugin",
+    "package:beta": "npm run validate && tsx scripts/package-beta.ts",
     "ci": "npm run validate"
   },
   "dependencies": {

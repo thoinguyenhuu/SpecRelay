@@ -8,7 +8,16 @@ const pluginSchema = z
     name: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     version: z.string().min(1),
     description: z.string().min(1),
-    author: z.object({ name: z.string().min(1) }),
+    author: z
+      .object({
+        name: z.string().min(1),
+        url: z.string().url().optional()
+      })
+      .strict(),
+    homepage: z.string().url().optional(),
+    repository: z.string().url().optional(),
+    license: z.string().min(1).optional(),
+    keywords: z.array(z.string().min(1)).optional(),
     skills: z.string().min(1),
     interface: z.object({
       displayName: z.string().min(1),
