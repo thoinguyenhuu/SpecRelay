@@ -10,6 +10,7 @@ import {
   requireRunPaths,
   writeInitialRunArtifacts
 } from "../core/artifacts.js";
+import { assessPlanApproval, type ApprovalStatus } from "../core/approval.js";
 import { SpecRelayError } from "../core/errors.js";
 import {
   createVietnamesePlanDocument,
@@ -38,7 +39,9 @@ export interface PlanSummary {
   readonly acceptanceCriterionCount: number;
   readonly openQuestions: readonly OpenQuestion[];
   readonly approval: {
-    readonly status: "not_approved";
+    readonly status: ApprovalStatus;
+    readonly approvedAt?: string;
+    readonly approvedBy?: string;
   };
 }
 
@@ -65,8 +68,22 @@ function createRunRecord(runId: string, repositoryRoot: string, timestamp: strin
   };
 }
 
-function buildPlanSummary(runId: string, run: RunRecord, planContent: string): PlanSummary {
+async function buildPlanSummary(
+  runId: string,
+  run: RunRecord,
+  planContent: string,
+  repositoryRoot: string
+): Promise<PlanSummary> {
   const plan = parsePlanDocument(planContent);
+  const assessment = await assessPlanApproval(await requireRunPaths(repositoryRoot, runId));
+  const approval =
+    assessment.record === undefined
+      ? { status: assessment.status }
+      : {
+          status: assessment.status,
+          approvedAt: assessment.record.approvedAt,
+          approvedBy: assessment.record.approvedBy
+        };
 
   return {
     command: "show",
@@ -80,7 +97,7 @@ function buildPlanSummary(runId: string, run: RunRecord, planContent: string): P
     implementationStepCount: plan.implementationSteps.length,
     acceptanceCriterionCount: plan.acceptanceCriteria.length,
     openQuestions: plan.openQuestions,
-    approval: { status: "not_approved" }
+    approval
   };
 }
 
@@ -113,7 +130,7 @@ export async function createPlanRun(options: CreatePlanOptions): Promise<CreateP
     runId,
     repositoryRoot,
     state: "draft_plan",
-    summary: buildPlanSummary(runId, record, planContent)
+    summary: await buildPlanSummary(runId, record, planContent, repositoryRoot)
   };
 }
 
@@ -126,5 +143,5 @@ export async function showPlanRun(repositoryPath: string, runId: string): Promis
     fs.readFile(runPaths.planPath, "utf8")
   ]);
 
-  return buildPlanSummary(runId, record, planContent);
+  return buildPlanSummary(runId, record, planContent, repositoryRoot);
 }

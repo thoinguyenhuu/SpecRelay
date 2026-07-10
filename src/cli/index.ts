@@ -4,6 +4,7 @@ import { Command } from "commander";
 
 import { isSpecRelayError } from "../core/errors.js";
 import { runDoctor } from "./doctor.js";
+import { approvePlanRun } from "./approval.js";
 import { initializeRepository } from "./init.js";
 import { createPlanRun, showPlanRun, type PlanSummary } from "./plan.js";
 
@@ -12,6 +13,10 @@ interface CommandOptions {
   readonly json?: boolean;
   readonly dryRun?: boolean;
   readonly language?: "vi";
+  readonly yes?: boolean;
+  readonly approvedBy?: string;
+  readonly acceptOpenQuestions?: boolean;
+  readonly reason?: string;
 }
 
 function writeResult(value: unknown, json: boolean): void {
@@ -48,6 +53,17 @@ function writeResult(value: unknown, json: boolean): void {
   }
 
   if (typeof value === "object" && value !== null && "approval" in value && "runId" in value) {
+    if ("state" in value && "command" in value && value.command === "approve") {
+      const result = value as {
+        readonly runId: string;
+        readonly state: string;
+        readonly approval: { readonly approvedBy: string; readonly planSha256: string };
+      };
+      process.stdout.write(`Approved run ${result.runId} in ${result.state}.\n`);
+      process.stdout.write(`Approved by: ${result.approval.approvedBy}\n`);
+      process.stdout.write(`Plan hash: ${result.approval.planSha256}\n`);
+      return;
+    }
     writePlanSummary(value as PlanSummary);
     return;
   }
@@ -112,6 +128,32 @@ program
     const report = runDoctor(options.repo ?? process.cwd());
     writeResult(report, options.json ?? false);
     if (!report.healthy) {
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("approve <run-id>")
+  .description("Approve the current plan after explicit human confirmation.")
+  .option("--yes", "Confirm that the displayed plan is approved")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--approved-by <label>", "Audit label for the person approving")
+  .option("--accept-open-questions", "Explicitly accept blocking open questions")
+  .option("--reason <text>", "Reason for accepting blocking open questions")
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      const result = await approvePlanRun({
+        repositoryPath: options.repo ?? process.cwd(),
+        runId,
+        confirmed: options.yes ?? false,
+        acceptOpenQuestions: options.acceptOpenQuestions ?? false,
+        ...(options.approvedBy === undefined ? {} : { approvedBy: options.approvedBy }),
+        ...(options.reason === undefined ? {} : { reason: options.reason })
+      });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
       process.exitCode = 1;
     }
   });
