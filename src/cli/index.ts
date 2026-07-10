@@ -5,11 +5,13 @@ import { Command } from "commander";
 import { isSpecRelayError } from "../core/errors.js";
 import { runDoctor } from "./doctor.js";
 import { initializeRepository } from "./init.js";
+import { createPlanRun, showPlanRun, type PlanSummary } from "./plan.js";
 
 interface CommandOptions {
   readonly repo?: string;
   readonly json?: boolean;
   readonly dryRun?: boolean;
+  readonly language?: "vi";
 }
 
 function writeResult(value: unknown, json: boolean): void {
@@ -34,6 +36,22 @@ function writeResult(value: unknown, json: boolean): void {
     return;
   }
 
+  if (typeof value === "object" && value !== null && "summary" in value) {
+    const result = value as {
+      readonly runId: string;
+      readonly state: string;
+      readonly summary: PlanSummary;
+    };
+    process.stdout.write(`Created run ${result.runId} in ${result.state}.\n`);
+    writePlanSummary(result.summary);
+    return;
+  }
+
+  if (typeof value === "object" && value !== null && "approval" in value && "runId" in value) {
+    writePlanSummary(value as PlanSummary);
+    return;
+  }
+
   const result = value as {
     readonly initialized: boolean;
     readonly dryRun: boolean;
@@ -49,6 +67,17 @@ function writeResult(value: unknown, json: boolean): void {
   for (const change of result.plannedChanges) {
     process.stdout.write(`- ${change}\n`);
   }
+}
+
+function writePlanSummary(summary: PlanSummary): void {
+  process.stdout.write(`Objective: ${summary.objective}\n`);
+  process.stdout.write(`State: ${summary.state}\n`);
+  process.stdout.write(
+    `Plan: ${summary.implementationStepCount} step(s), ${summary.acceptanceCriterionCount} acceptance criterion/criteria\n`
+  );
+  process.stdout.write(`Scope: ${summary.scope.in.length} in, ${summary.scope.out.length} out\n`);
+  process.stdout.write(`Open questions: ${summary.openQuestions.length}\n`);
+  process.stdout.write(`Approval: ${summary.approval.status}\n`);
 }
 
 function writeError(error: unknown, json: boolean): void {
@@ -99,6 +128,44 @@ program
         repositoryPath: options.repo ?? process.cwd(),
         dryRun: options.dryRun ?? false
       });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("plan <objective>")
+  .description("Create a Vietnamese plan draft and its local artifacts.")
+  .option("--repo <path>", "Repository to use", process.cwd())
+  .option("--language <language>", "Plan language", "vi")
+  .option("--json", "Print machine-readable JSON")
+  .action(async (objective: string, options: CommandOptions) => {
+    try {
+      if (options.language !== "vi") {
+        throw new Error("Only the 'vi' plan language is supported in Phase B.");
+      }
+      const result = await createPlanRun({
+        repositoryPath: options.repo ?? process.cwd(),
+        objective,
+        language: options.language
+      });
+      writeResult(result, options.json ?? false);
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("show <run-id>")
+  .description("Show a compact, chat-friendly plan summary.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      const result = await showPlanRun(options.repo ?? process.cwd(), runId);
       writeResult(result, options.json ?? false);
     } catch (error) {
       writeError(error, options.json ?? false);

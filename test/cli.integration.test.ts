@@ -8,6 +8,7 @@ import { ARTIFACT_DIRECTORY, CONFIG_FILENAME, RUNS_DIRECTORY } from "../src/core
 import type { SpecRelayError } from "../src/core/errors.js";
 import { runDoctor } from "../src/cli/doctor.js";
 import { initializeRepository } from "../src/cli/init.js";
+import { createPlanRun, showPlanRun } from "../src/cli/plan.js";
 import { createTemporaryGitRepository } from "./helpers.js";
 
 const temporaryDirectories: string[] = [];
@@ -111,5 +112,32 @@ describe("init", () => {
     ).rejects.toMatchObject({
       code: "ARTIFACT_DIRECTORY_COLLISION"
     } satisfies Partial<SpecRelayError>);
+  });
+});
+
+describe("plan artifacts", () => {
+  it("creates a draft run and shows a compact summary without raw Markdown", async () => {
+    const repositoryPath = await temporaryRepository();
+    await initializeRepository({ repositoryPath, dryRun: false });
+
+    const created = await createPlanRun({
+      repositoryPath,
+      objective: "Tạo module quản lý cơ sở giáo dục",
+      language: "vi"
+    });
+    const summary = await showPlanRun(repositoryPath, created.runId);
+
+    expect(created.state).toBe("draft_plan");
+    expect(summary).toMatchObject({
+      objective: "Tạo module quản lý cơ sở giáo dục",
+      approval: { status: "not_approved" },
+      implementationStepCount: 0
+    });
+    expect("body" in summary).toBe(false);
+    await expect(
+      fs.access(
+        path.join(repositoryPath, ARTIFACT_DIRECTORY, RUNS_DIRECTORY, created.runId, "events.jsonl")
+      )
+    ).resolves.toBeUndefined();
   });
 });
