@@ -15,7 +15,9 @@
     "README.md",
     "README.vi.md",
     "LICENSE",
-    ".codex-plugin"
+    ".codex-plugin",
+    "skills",
+    "templates"
   ],
   "engines": {
     "node": ">=22.0.0",
