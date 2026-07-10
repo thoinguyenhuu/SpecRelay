@@ -1,6 +1,6 @@
 # SpecRelay architecture
 
-## Phase B boundaries
+## Phase C boundaries
 
 SpecRelay is a single Node.js ESM package. The public CLI and the future Codex
 plugin are adapters around a small, testable core; the core is the source of
@@ -15,9 +15,11 @@ Terminal user ─────────┘                     ├─ state ma
                                               └─ stable errors
 ```
 
-Phase B adds a local artifact store for plan drafting and approval. It still
-contains no model client, credential handling, network request, source-code
-mutation, test runner, or Git worktree lifecycle.
+Phase C adds a local worker that starts Claude Code only after human plan
+approval and a second `implement --yes` confirmation. It creates a branch and
+Git worktree outside the base repository, then records bounded, redacted local
+artifacts. It still contains no model API client, credential storage, test
+runner, code review, commit, push, or merge capability.
 
 ## CLI contract
 
@@ -36,6 +38,13 @@ mutation, test runner, or Git worktree lifecycle.
 - Errors have stable codes such as `NOT_A_GIT_REPOSITORY`, `INVALID_CONFIG`,
   `RUN_NOT_FOUND`, `OPEN_BLOCKING_QUESTIONS`, `PLAN_CHANGED_AFTER_APPROVAL`,
   and `RUN_LOCKED`.
+- `specrelay implement` re-checks approval integrity, rejects a dirty base
+  repository, creates `specrelay/<run-id>` in an owned cache worktree, and
+  launches a detached internal worker. It requires a separate `--yes`.
+- `specrelay status`, `cancel`, `report`, and `cleanup` are lifecycle commands.
+  Cancellation is an artifact request consumed by the worker; it never sends a
+  signal to an unverified PID. Cleanup only removes a clean owned worktree and
+  always retains run artifacts.
 
 ## Persistent configuration
 
@@ -55,19 +64,31 @@ state.json              Atomic state snapshot
 events.jsonl            Append-only audit events
 plan.normalized.json    Derived executor input, created only on approval
 approval.json           Plan hash and approval audit record
+policy.json             Immutable permission and resource-limit snapshot
+executor-prompt.md      Deterministic contract passed to Claude Code
+execution.json          Worker heartbeat, worktree ownership, and outcome
+executor-events.jsonl   Bounded, redacted Claude stream events
+executor-summary.json   Exit result and changed-file summary
 ```
 
 Mutating commands hold a short exclusive per-run lock. `plan.md` is hashed as
 the complete byte sequence read from disk. Any differing byte makes approval
-stale. Future executor phases must call the approval integrity gate before
-using a plan.
+stale. The executor must call the approval integrity gate before using a plan.
+
+The worker runs `claude -p` without a shell, `--add-dir`, or dangerous
+permission bypass. Its default policy permits file changes only in the worktree
+and Git read operations, while denying commit, push, publish, auth, downloads,
+and destructive shell patterns. This is a defense-in-depth policy, not a
+security sandbox.
 
 ## Chat-first adapter
 
 The bundled `specrelay-workflow` skill directs Codex to discuss and revise the
 plan in chat, update artifacts only after the plan is shown, and execute
 `approve --yes` only after direct user confirmation in the current conversation.
-It never invokes Claude Code during Phase B.
+It invokes Claude Code only after the user explicitly asks to implement an
+already-approved plan. It then presents lifecycle summaries in chat and stops
+before check or review stages.
 
-Future phases will add isolated worktrees, executor logs, and review packets
-without allowing plan text to bypass CLI policy.
+Future phases will add target checks, public diff, and review packets without
+allowing plan text to bypass CLI policy.
