@@ -21,6 +21,7 @@ export interface RunPaths {
   readonly executionPath: string;
   readonly executorEventsPath: string;
   readonly executorSummaryPath: string;
+  readonly checksPath: string;
   readonly lockPath: string;
 }
 
@@ -51,6 +52,7 @@ export function getRunPaths(repositoryRoot: string, runId: string): RunPaths {
     executionPath: path.join(runDirectory, "execution.json"),
     executorEventsPath: path.join(runDirectory, "executor-events.jsonl"),
     executorSummaryPath: path.join(runDirectory, "executor-summary.json"),
+    checksPath: path.join(runDirectory, "checks.json"),
     lockPath: path.join(runDirectory, ".lock")
   };
 }

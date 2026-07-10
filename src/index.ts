@@ -1,4 +1,5 @@
 export * from "./core/config.js";
+export * from "./core/checks.js";
 export * from "./core/approval.js";
 export * from "./core/errors.js";
 export * from "./core/execution.js";

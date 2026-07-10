@@ -4,8 +4,9 @@ import { Command } from "commander";
 
 import { isExecutionTerminal } from "../core/execution.js";
 import { isSpecRelayError } from "../core/errors.js";
-import { runDoctor } from "./doctor.js";
 import { approvePlanRun } from "./approval.js";
+import { runApprovedChecks } from "./check.js";
+import { runDoctor } from "./doctor.js";
 import { runExecutorWorker } from "./executor-worker.js";
 import {
   cleanupExecution,
@@ -39,8 +40,14 @@ function writeResult(value: unknown, json: boolean): void {
     return;
   }
 
-  if (typeof value === "object" && value !== null && "checks" in value) {
-    const report = value as {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "command" in value &&
+    value.command === "doctor" &&
+    "checks" in value
+  ) {
+    const report = value as unknown as {
       readonly healthy: boolean;
       readonly checks: readonly { id: string; status: string; message: string }[];
     };
@@ -114,6 +121,17 @@ function writeResult(value: unknown, json: boolean): void {
       const execution = result.execution as { state: string; worktreePath: string };
       process.stdout.write(`Execution ${result.runId}: ${execution.state}\n`);
       process.stdout.write(`Worktree: ${execution.worktreePath}\n`);
+      return;
+    }
+    if (result.command === "check") {
+      const checks = result.checks as {
+        outcome: string;
+        results: readonly { id: string; outcome: string }[];
+      };
+      process.stdout.write(`Checks for ${result.runId}: ${checks.outcome}\n`);
+      for (const check of checks.results) {
+        process.stdout.write(`- ${check.id}: ${check.outcome}\n`);
+      }
       return;
     }
   }
@@ -306,6 +324,23 @@ program
         result = await getExecutionStatus(options.repo ?? process.cwd(), runId);
         writeResult(result, options.json ?? false);
       }
+    } catch (error) {
+      writeError(error, options.json ?? false);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("check <run-id>")
+  .description("Run the approved, explicit checks in this run's isolated worktree.")
+  .option("--repo <path>", "Repository containing the run", process.cwd())
+  .option("--json", "Print machine-readable JSON")
+  .action(async (runId: string, options: CommandOptions) => {
+    try {
+      writeResult(
+        await runApprovedChecks({ repositoryPath: options.repo ?? process.cwd(), runId }),
+        options.json ?? false
+      );
     } catch (error) {
       writeError(error, options.json ?? false);
       process.exitCode = 1;
