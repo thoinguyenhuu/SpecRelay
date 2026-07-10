@@ -1,6 +1,6 @@
 # Hướng dẫn beta SpecRelay
 
-Hướng dẫn này cài CLI `v0.1.0-beta.1` từ GitHub Release tarball, sau đó cài
+Hướng dẫn này cài CLI `v0.1.0-beta.2` từ GitHub Release tarball, sau đó cài
 plugin Codex từ Git marketplace SpecRelay. CLI và plugin là hai phần cài đặt
 độc lập.
 
@@ -15,18 +15,18 @@ plugin Codex từ Git marketplace SpecRelay. CLI và plugin là hai phần cài 
 ## 1. Cài và kiểm tra CLI
 
 ```powershell
-npm install --global https://github.com/thoinguyenhuu/SpecRelay/releases/download/v0.1.0-beta.1/specrelay-cli-0.1.0-beta.1.tgz
+npm install --global https://github.com/thoinguyenhuu/SpecRelay/releases/download/v0.1.0-beta.2/specrelay-cli-0.1.0-beta.2.tgz
 specrelay --version
 specrelay doctor --json
 ```
 
-Version phải là `0.1.0-beta.1`. Nếu không tìm thấy `specrelay`, hãy mở terminal
+Version phải là `0.1.0-beta.2`. Nếu không tìm thấy `specrelay`, hãy mở terminal
 mới và kiểm tra thư mục npm global bin đã nằm trong `PATH` chưa.
 
 ## 2. Thêm plugin marketplace
 
 ```powershell
-codex plugin marketplace add thoinguyenhuu/SpecRelay --ref v0.1.0-beta.1 --sparse .agents/plugins
+codex plugin marketplace add thoinguyenhuu/SpecRelay --ref v0.1.0-beta.2 --sparse .agents/plugins
 codex plugin marketplace list
 ```
 
@@ -60,7 +60,7 @@ Chạy Claude thật là tùy chọn và chỉ nên thực hiện trong fixture 
 - **macOS/Linux:** mở shell mới, sau đó chạy `command -v specrelay` và
   `command -v codex`.
 - **Không thấy plugin:** chạy `codex plugin marketplace list`, kiểm tra ref
-  `v0.1.0-beta.1`, restart desktop app rồi cài trong Plugins directory.
+  `v0.1.0-beta.2`, restart desktop app rồi cài trong Plugins directory.
 - **Codex không chạy được shell:** dùng các lệnh `specrelay` tương tự trong
   terminal; workflow và artifact audit không đổi.
 

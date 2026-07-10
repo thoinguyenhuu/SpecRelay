@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0-beta.2]
+
+### Fixed
+
+- Keep the plugin technical ID stable when the repository is checked out under
+  a directory named `SpecRelay`.
+
 ### Added
 
 - TypeScript Phase A foundation, offline checks, and `specrelay doctor/init`.
@@ -20,4 +27,4 @@ and this project follows [Semantic Versioning](https://semver.org/).
   `review.json` quality gates, and canonical `final-report.json`.
 - Beta distribution metadata, a Git marketplace, beta fixture, acceptance
   checklist, threat model, and installation/feedback documentation for
-  `v0.1.0-beta.1`.
+  the initial beta release.

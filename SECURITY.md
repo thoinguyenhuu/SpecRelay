@@ -21,5 +21,5 @@ disclosure timeline with the reporter.
 - No credential storage; bounded logs redact common credential patterns.
 - Agent execution uses explicit policy, isolated workspaces, and human approval
   gates; it never relies on prompt text as authorization.
-- Beta releases require an independent threat-model review before the
+- Beta releases require a maintainer threat-model review before the
   `beta-release` environment is approved.

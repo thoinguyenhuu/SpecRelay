@@ -34,11 +34,11 @@ const pluginSchema = z
 const projectRoot = process.cwd();
 const manifestPath = path.join(projectRoot, ".codex-plugin", "plugin.json");
 const manifest = pluginSchema.parse(JSON.parse(fs.readFileSync(manifestPath, "utf8")));
-const directoryName = path.basename(projectRoot);
+const technicalPluginId = "plugin-4-codex-control-cc";
 
-if (manifest.name !== directoryName) {
+if (manifest.name !== technicalPluginId) {
   throw new Error(
-    `Plugin name '${manifest.name}' must match project directory '${directoryName}'.`
+    `Plugin name '${manifest.name}' must remain the technical plugin ID '${technicalPluginId}'.`
   );
 }
 

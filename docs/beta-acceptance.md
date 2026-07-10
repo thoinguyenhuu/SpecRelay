@@ -5,7 +5,7 @@ does not collect telemetry or contact testers automatically.
 
 ## Tester record
 
-- Release tag: `v0.1.0-beta.1`
+- Release tag: `v0.1.0-beta.2`
 - Platform: Windows PowerShell, Windows WSL, macOS, or Linux
 - Node, npm, Git, Codex, and Claude Code versions:
 - Fixture-only or real Claude fixture run:

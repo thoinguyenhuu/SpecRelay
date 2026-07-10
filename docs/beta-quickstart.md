@@ -1,6 +1,6 @@
 # SpecRelay beta quickstart
 
-This guide installs the `v0.1.0-beta.1` CLI from a GitHub Release tarball and
+This guide installs the `v0.1.0-beta.2` CLI from a GitHub Release tarball and
 then installs the Codex plugin from the SpecRelay Git marketplace. The CLI and
 plugin are separate installations by design.
 
@@ -17,18 +17,18 @@ plugin are separate installations by design.
 Install the release tarball globally:
 
 ```sh
-npm install --global https://github.com/thoinguyenhuu/SpecRelay/releases/download/v0.1.0-beta.1/specrelay-cli-0.1.0-beta.1.tgz
+npm install --global https://github.com/thoinguyenhuu/SpecRelay/releases/download/v0.1.0-beta.2/specrelay-cli-0.1.0-beta.2.tgz
 specrelay --version
 specrelay doctor --json
 ```
 
-The version must be `0.1.0-beta.1`. If `specrelay` is not found, reopen the
+The version must be `0.1.0-beta.2`. If `specrelay` is not found, reopen the
 terminal and ensure npm's global bin directory is on `PATH`.
 
 ## 2. Add the plugin marketplace
 
 ```sh
-codex plugin marketplace add thoinguyenhuu/SpecRelay --ref v0.1.0-beta.1 --sparse .agents/plugins
+codex plugin marketplace add thoinguyenhuu/SpecRelay --ref v0.1.0-beta.2 --sparse .agents/plugins
 codex plugin marketplace list
 ```
 
@@ -64,7 +64,7 @@ fixture.
 - **macOS/Linux:** reopen the shell after global installation, then run
   `command -v specrelay` and `command -v codex`.
 - **Plugin missing:** run `codex plugin marketplace list`, confirm the
-  `v0.1.0-beta.1` marketplace source, restart the desktop app, and install
+  `v0.1.0-beta.2` marketplace source, restart the desktop app, and install
   from the Plugins directory.
 - **Codex cannot run shell commands:** use the same `specrelay` commands from
   a terminal. The workflow and audit artifacts remain identical.

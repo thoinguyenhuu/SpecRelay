@@ -26,7 +26,7 @@ describe("beta release metadata", () => {
       license: string;
     };
 
-    expect(packageMetadata.version).toBe("0.1.0-beta.1");
+    expect(packageMetadata.version).toBe("0.1.0-beta.2");
     expect(pluginMetadata.version).toBe(packageMetadata.version);
     expect(packageMetadata.private).toBe(true);
     expect(packageMetadata.homepage).toBe(`${repositoryUrl}#readme`);

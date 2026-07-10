@@ -10,7 +10,7 @@ body:
     id: release
     attributes:
       label: SpecRelay release tag
-      placeholder: v0.1.0-beta.1
+      placeholder: v0.1.0-beta.2
     validations:
       required: true
   - type: dropdown
