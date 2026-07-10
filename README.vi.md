@@ -1,28 +1,31 @@
 # SpecRelay
 
-> Quy trình duyệt plan và review cho Codex và Claude Code.
+> Quy trình coding đa model có plan được con người duyệt.
 
-SpecRelay là CLI/plugin local-first để con người duyệt kế hoạch trước khi agent
-sửa mã, lưu bằng chứng thực thi và tách reviewer khỏi executor.
+SpecRelay là CLI/plugin local-first để Codex điều phối và review, còn Claude
+Code triển khai trong worktree riêng:
 
-Phase C đã có executor được kiểm soát: **draft plan → con người duyệt rõ ràng →
-xác nhận triển khai riêng → Claude Code trong worktree cô lập**. Chat Codex là
-giao diện chính để xem/sửa plan và theo dõi tóm tắt lifecycle; các file trong
-`.specrelay/` là artifact nền để audit và resume, không phải nơi người dùng
-phải đọc Markdown.
+```text
+Codex chat lập plan → người dùng duyệt → Claude Code triển khai cô lập
+→ chạy check đã duyệt → Codex review trong chat → complete hoặc needs_human
+```
+
+Phase D bổ sung quality gate. Các check phải nằm trong plan đã duyệt và chạy
+không qua shell ở worktree riêng. Bạn xem plan và review chủ yếu ngay trong
+chat Codex; JSON/Markdown trong `.specrelay/` là artifact audit/resume, không
+phải giao diện tài liệu bắt buộc phải đọc.
 
 [Read the English README](README.md) · [Architecture](docs/architecture.md) ·
-[Kế hoạch dự án tiếng Việt](docs/ke-hoach-open-source.md)
+[Kế hoạch dự án](docs/ke-hoach-open-source.md)
 
 ## Yêu cầu
 
 - Node.js 22+
 - npm 10+
 - Git
-- Claude Code chỉ bắt buộc khi chạy `specrelay implement`
 
-`specrelay doctor` kiểm tra Git worktree, Claude print mode và cảnh báo Windows
-trước khi bạn chạy executor.
+Chỉ cần Claude Code khi gọi `specrelay implement`. Nếu giao diện Codex không
+cho chạy shell, toàn bộ workflow vẫn dùng được từ terminal.
 
 ## Phát triển
 
@@ -31,38 +34,41 @@ npm install
 npm run validate
 ```
 
-Chạy CLI trong lúc phát triển:
-
 ```bash
 npm run dev -- doctor --json
 npm run dev -- init --repo path/to/a/git-repository --dry-run
 npm run dev -- plan "Tạo module quản lý cơ sở giáo dục" --repo path/to/a/git-repository --json
 ```
 
-## Quy trình Phase C
+## Quy trình Phase D
 
-1. Làm rõ yêu cầu và xem/sửa plan tiếng Việt ngay trong chat Codex. Skill
-   `specrelay-workflow` đặt quy ước chat-first này.
-2. `specrelay plan` tạo run nháp; Codex ghi plan đã thống nhất vào `plan.md`.
-   YAML front matter của file này là nguồn sự thật.
-3. `specrelay show <run-id>` chỉ hiển thị thống kê gọn: mục tiêu, phạm vi, số
-   bước, tiêu chí nghiệm thu, câu hỏi mở và trạng thái duyệt.
-4. Chỉ sau khi bạn xác nhận rõ ràng ở chat hiện tại, Codex mới chạy
-   `specrelay approve <run-id> --yes`. Lệnh validate plan và hash toàn bộ byte
-   của `plan.md`.
-5. Approval plan không tự gọi Claude Code. Chỉ sau một xác nhận triển khai riêng
-   mới chạy `specrelay implement <run-id> --yes`. Lệnh từ chối base repo bẩn,
-   tạo branch/worktree riêng và khởi động worker nền cục bộ.
+1. Codex làm rõ và hiển thị plan tiếng Việt trong chat. Front matter của
+   `plan.md` có scope, acceptance criteria, open questions và `checks` rõ ràng.
+2. Bạn duyệt rõ ràng trong cuộc trò chuyện hiện tại; khi đó mới chạy
+   `specrelay approve <run-id> --yes`. Mọi byte của `plan.md` được hash; sửa
+   sau approval sẽ làm plan `stale`.
+3. Bạn xác nhận triển khai riêng; khi đó mới chạy
+   `specrelay implement <run-id> --yes`. Lệnh từ chối base repo bẩn và tạo
+   branch/worktree do SpecRelay sở hữu.
+4. Khi executor thành công, `specrelay check` chạy tuần tự đúng các `argv` đã
+   có trong plan, dừng ở check fail đầu tiên, timeout tối đa 10 phút và lưu
+   output đã redact/giới hạn.
+5. Nếu tất cả check pass, Codex dùng `review-packet` và `diff`, review trực
+   tiếp trong chat trước, rồi ghi quyết định có schema bằng `record-review`.
+6. Finding `blocking` hoặc `important` luôn đưa run sang `needs_human`; chỉ
+   finding `minor` hoặc không finding mới có thể thành `complete`.
 
-Câu hỏi `blocking` chặn duyệt mặc định. Nếu `plan.md` thay đổi sau duyệt,
-`show` báo `approval: stale` và executor từ chối chạy cho đến khi duyệt lại.
+Ví dụ phần check trong plan được duyệt:
 
-Trước khi chạy thật, dùng `specrelay implement --dry-run` để xem chính xác
-worktree, branch, policy, giới hạn và prompt hash mà không tạo file hay process.
-`status`, `cancel --yes`, `report` và `cleanup --yes` quản lý lifecycle. Cleanup
-giữ lại artifact audit và từ chối xoá worktree có thay đổi.
+```yaml
+checks:
+  - id: lint
+    preset: node
+    argv: ["npm", "run", "lint"]
+    timeout: "5m"
+```
 
-## Lệnh hiện có ở Phase C
+## Lệnh ở Phase D
 
 ```text
 specrelay doctor [--repo <path>] [--json]
@@ -74,36 +80,33 @@ specrelay implement <run-id> --yes [--repo <path>] [--max-turns <1..10>] [--time
 specrelay status <run-id> [--repo <path>] [--follow] [--json]
 specrelay cancel <run-id> --yes [--repo <path>] [--json]
 specrelay cleanup <run-id> --yes [--repo <path>] [--json]
+specrelay check <run-id> [--repo <path>] [--json]
+specrelay diff <run-id> [--repo <path>] [--stat] [-- <pathspec>] [--json]
+specrelay review-packet <run-id> [--repo <path>] [--json]
+specrelay record-review <run-id> --input <review.json> [--repo <path>] [--json]
 specrelay report <run-id> [--repo <path>] [--json]
 ```
 
-`doctor` chỉ đọc. `init` tạo `.specrelay/config.json` và `.specrelay/runs/`
-trong Git repository mục tiêu, sau đó thêm `.specrelay/` vào `.git/info/exclude`
-cục bộ; không sửa `.gitignore`.
-
-`plan` tạo `request.md`, `plan.md`, `state.json` và `events.jsonl` append-only.
-`approve` tạo `plan.normalized.json` và `approval.json`. `implement` tạo thêm
-policy snapshot, executor prompt, execution state, stream log đã redact/giới
-hạn và executor summary. Không sửa trực tiếp JSON derived.
+`report` cập nhật `final-report.json`: tóm tắt canonical của execution, checks,
+review decision, branch và worktree. Không có `final-report.md`.
 
 ## Mặc định an toàn
 
-- SpecRelay không có telemetry và không tự gọi network. Claude Code là process
-  cục bộ riêng, có xác thực/network riêng của nó.
-- Không đọc, lưu hoặc gửi API key/credential.
-- Không ghi đè config hợp lệ; từ chối `.specrelay/` không do SpecRelay quản lý.
-- Lệnh sửa run dùng lock độc quyền ngắn hạn, JSON state ghi atomic và event log
-  chỉ append.
-- `implement` từ chối base repo bẩn; không dùng shell, `--add-dir` hay
-  `--dangerously-skip-permissions`.
-- Đây là defense-in-depth, không phải sandbox. Chỉ chạy trên repository tin cậy
-  và kiểm tra worktree trước mọi merge sau này.
+- Không telemetry, không network request do SpecRelay tự tạo, không lưu credential.
+- Approval gắn SHA-256 của `plan.md`; executor/check/review đều từ chối plan stale.
+- Command thay đổi run dùng lock ngắn, JSON atomic và event append-only.
+- Executor, check và Git diff dùng argument array, không dùng shell. Executor
+  không dùng `--add-dir` hay `--dangerously-skip-permissions`.
+- Preset check chỉ là metadata `node`/`python`/`go`; SpecRelay không tự đoán
+  command và từ chối hành động package install.
+- Đây là defense-in-depth, không phải sandbox. Chỉ chạy trên repo bạn tin cậy
+  và tự kiểm tra worktree trước khi merge.
 
-## Chưa có ở Phase C
+## Chưa có ở Phase D
 
-Phase C không chạy target test/build/package command, không có public diff,
-không review code, không auto-fix finding, không commit/push/merge/publish/deploy
-và không tự resume executor bị interrupted. Các phần đó thuộc phase sau.
+Không auto-fix, resume executor, commit, push, merge, deploy, publish hay gọi
+model API. `needs_human` luôn chờ quyết định của bạn ở phase sau.
 
 SpecRelay dùng [Apache-2.0](LICENSE). Xem thêm
-[CONTRIBUTING.md](CONTRIBUTING.md) và [SECURITY.md](SECURITY.md).
+[CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) và
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

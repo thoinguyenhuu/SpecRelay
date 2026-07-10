@@ -144,8 +144,9 @@ Mọi run lưu trong repo mục tiêu, không lưu trong thư mục plugin:
   executor-prompt.md
   executor-events.jsonl
   checks.json
-  review.md
-  final-report.md
+  review-packet.json
+  review.json
+  final-report.json
 ```
 
 Thư mục `.specrelay/` mặc định phải được thêm vào `.git/info/exclude`.
@@ -348,16 +349,26 @@ và kiểm tra Git có hỗ trợ `worktree`. Không kiểm tra `core.symlinks`:
 approved plan + acceptance criteria + git diff + check results + executor report
 ```
 
-Codex skill yêu cầu Codex review packet và ghi finding theo schema:
+Codex skill yêu cầu Codex review ngay trong chat trước, rồi ghi finding vào
+`review.json` theo schema:
 
-```md
-## F-001 — important
-
-- Vị trí: `src/service.ts:42`
-- Vấn đề: ...
-- Vì sao vi phạm plan/tiêu chí: ...
-- Cách kiểm chứng: ...
-- Đề xuất tối thiểu: ...
+```json
+{
+  "decision": "needs_human",
+  "summary": "...",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "important",
+      "file": "src/service.ts",
+      "line": 42,
+      "category": "maintainability",
+      "problem": "...",
+      "evidence": ["..."],
+      "requiredFix": "..."
+    }
+  ]
+}
 ```
 
 **Gate v0.1:** có `blocking`/`important` thì report là `needs_human`, không tự
@@ -541,9 +552,9 @@ trước approve và bị chặn lại khi plan thay đổi sau approve.
 
 1. Test-command schema/preset (`node`, `python`, `go`), command runner safe.
 2. Ghi exit code, duration, truncated/redacted output vào `checks.json`.
-3. Generate review packet và template `review.md`.
+3. Generate `review-packet.json`, diff/hash có giới hạn và `review.json` có schema.
 4. Codex skill review theo plan, diff, checks; report không tự merge.
-5. `final-report.md` rõ trạng thái: complete/needs_human/failed.
+5. `final-report.json` rõ trạng thái: complete/needs_human/failed.
 
 **Definition of done:** người dùng nhìn report biết chính xác đã đổi gì, test
 nào pass/fail, finding nào còn lại, và cách lấy worktree/branch để review.
