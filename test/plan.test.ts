@@ -46,8 +46,27 @@ describe("plan document", () => {
     expect(normalized).toMatchObject({
       runId: "run-example",
       sourceSha256: hash,
-      objective: "Tạo module giáo dục"
+      objective: "Tạo module giáo dục",
+      checks: []
     });
+  });
+
+  it("accepts explicit approved check definitions and rejects invalid argv", () => {
+    const planWithChecks = validPlan.replace(
+      "openQuestions:\n  - id: q-1",
+      'checks:\n  - id: lint\n    preset: node\n    argv: ["npm", "run", "lint"]\n    timeout: "5m"\nopenQuestions:\n  - id: q-1'
+    );
+
+    expect(parsePlanDocument(planWithChecks).checks).toEqual([
+      { id: "lint", preset: "node", argv: ["npm", "run", "lint"], timeout: "5m" }
+    ]);
+    expect(() =>
+      parsePlanDocument(planWithChecks.replace('argv: ["npm", "run", "lint"]', "argv: []"))
+    ).toThrowError(expect.objectContaining({ code: "INVALID_PLAN" }));
+  });
+
+  it("reads Phase B plans that do not define checks as an empty list", () => {
+    expect(parsePlanDocument(validPlan).checks).toEqual([]);
   });
 
   it("uses the complete bytes when computing SHA-256", () => {

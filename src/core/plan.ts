@@ -33,6 +33,22 @@ const acceptanceCriterionSchema = z
   })
   .strict();
 
+export const checkPresetSchema = z.enum(["node", "python", "go"]);
+
+export const checkDefinitionSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    preset: checkPresetSchema,
+    argv: z.array(nonEmptyText).min(1),
+    timeout: z
+      .string()
+      .regex(/^\d+(?:s|m)$/u)
+      .default("5m")
+  })
+  .strict();
+
+export type CheckDefinition = z.infer<typeof checkDefinitionSchema>;
+
 export const planFrontMatterSchema = z
   .object({
     schemaVersion: z.literal(PLAN_SCHEMA_VERSION),
@@ -43,7 +59,8 @@ export const planFrontMatterSchema = z
     constraints: z.array(nonEmptyText),
     implementationSteps: z.array(planStepSchema),
     acceptanceCriteria: z.array(acceptanceCriterionSchema),
-    openQuestions: z.array(openQuestionSchema)
+    openQuestions: z.array(openQuestionSchema),
+    checks: z.array(checkDefinitionSchema).default([])
   })
   .strict();
 
@@ -162,6 +179,7 @@ export function normalizePlan(
     implementationSteps: plan.implementationSteps,
     acceptanceCriteria: plan.acceptanceCriteria,
     openQuestions: plan.openQuestions,
+    checks: plan.checks,
     runId,
     sourceSha256
   };
@@ -177,7 +195,8 @@ export function createVietnamesePlanDocument(objective: string): string {
     constraints: [],
     implementationSteps: [],
     acceptanceCriteria: [],
-    openQuestions: []
+    openQuestions: [],
+    checks: []
   }).trimEnd();
 
   return `---\n${frontMatter}\n---\n\n# Kế hoạch triển khai\n\n> Đây là bản nháp. Hãy hoàn thiện phạm vi, các bước và tiêu chí nghiệm thu trước khi duyệt.\n\n## Cách tiếp cận\n\nMô tả ngắn gọn hướng triển khai, các quyết định quan trọng và rủi ro cần lưu ý.\n`;

@@ -8,6 +8,7 @@ constraints: []
 implementationSteps: []
 acceptanceCriteria: []
 openQuestions: []
+checks: []
 ---
 
 # Kế hoạch triển khai
