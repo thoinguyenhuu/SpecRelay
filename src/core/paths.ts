@@ -16,6 +16,11 @@ export interface RunPaths {
   readonly eventsPath: string;
   readonly normalizedPlanPath: string;
   readonly approvalPath: string;
+  readonly policyPath: string;
+  readonly executorPromptPath: string;
+  readonly executionPath: string;
+  readonly executorEventsPath: string;
+  readonly executorSummaryPath: string;
   readonly lockPath: string;
 }
 
@@ -41,6 +46,11 @@ export function getRunPaths(repositoryRoot: string, runId: string): RunPaths {
     eventsPath: path.join(runDirectory, "events.jsonl"),
     normalizedPlanPath: path.join(runDirectory, "plan.normalized.json"),
     approvalPath: path.join(runDirectory, "approval.json"),
+    policyPath: path.join(runDirectory, "policy.json"),
+    executorPromptPath: path.join(runDirectory, "executor-prompt.md"),
+    executionPath: path.join(runDirectory, "execution.json"),
+    executorEventsPath: path.join(runDirectory, "executor-events.jsonl"),
+    executorSummaryPath: path.join(runDirectory, "executor-summary.json"),
     lockPath: path.join(runDirectory, ".lock")
   };
 }

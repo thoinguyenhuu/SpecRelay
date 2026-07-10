@@ -5,3 +5,4 @@ export * from "./core/paths.js";
 export * from "./core/plan.js";
 export * from "./core/run.js";
 export * from "./core/state.js";
+export * from "./core/worktree.js";
