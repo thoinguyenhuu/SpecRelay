@@ -1,4 +1,4 @@
 interface:
   display_name: "SpecRelay Workflow"
-  short_description: "Plan and approve work in Codex chat"
-  default_prompt: "Use $specrelay-workflow to plan a repository change and wait for my approval."
+  short_description: "Plan, execute, and review work in Codex chat"
+  default_prompt: "Use $specrelay-workflow to plan, approve, implement, check, and review a repository change."
