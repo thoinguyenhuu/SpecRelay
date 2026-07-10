@@ -116,6 +116,7 @@ export function createExecutionPolicy(options: {
 export function buildClaudeArguments(policy: ExecutionPolicy, prompt: string): readonly string[] {
   return [
     "-p",
+    prompt,
     "--output-format",
     "stream-json",
     "--verbose",
@@ -124,10 +125,9 @@ export function buildClaudeArguments(policy: ExecutionPolicy, prompt: string): r
     "--permission-mode",
     policy.permissionMode,
     "--allowedTools",
-    policy.allowedTools.join(" "),
+    ...policy.allowedTools,
     "--disallowedTools",
-    policy.disallowedTools.join(" "),
-    prompt
+    ...policy.disallowedTools
   ];
 }
 

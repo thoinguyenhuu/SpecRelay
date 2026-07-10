@@ -24,6 +24,11 @@ describe("execution policy", () => {
     const policy = createExecutionPolicy({ maxTurns: 3, timeoutMs: 60_000, prompt: "implement" });
     const args = buildClaudeArguments(policy, "implement");
 
+    expect(args.slice(0, 2)).toEqual(["-p", "implement"]);
+    const allowedToolsIndex = args.indexOf("--allowedTools");
+    const disallowedToolsIndex = args.indexOf("--disallowedTools");
+    expect(args.slice(allowedToolsIndex + 1, disallowedToolsIndex)).toEqual(policy.allowedTools);
+    expect(args.slice(disallowedToolsIndex + 1)).toEqual(policy.disallowedTools);
     expect(args).toContain("--permission-mode");
     expect(args).toContain("acceptEdits");
     expect(args).toContain("--output-format");
