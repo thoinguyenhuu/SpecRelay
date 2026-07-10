@@ -64,8 +64,12 @@ export async function requireRunPaths(repositoryRoot: string, runId: string): Pr
 }
 
 export async function writeJsonAtomically(filePath: string, value: unknown): Promise<void> {
+  await writeTextAtomically(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export async function writeTextAtomically(filePath: string, content: string): Promise<void> {
   const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
+  await fs.writeFile(temporaryPath, content, {
     encoding: "utf8",
     mode: 0o600
   });
